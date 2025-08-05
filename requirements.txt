@@ -1,6 +1,6 @@
 streamlit==1.35.0
 sentence-transformers==2.7.0
-pymupdf==1.24.2
+pypdf==4.2.0
 llama-cpp-python==0.2.68
 huggingface_hub==0.23.0
 tqdm==4.66.4
