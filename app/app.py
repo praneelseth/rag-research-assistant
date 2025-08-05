@@ -26,8 +26,8 @@ if "chunks" not in st.session_state:
     st.session_state.chunks = []
 if "embeddings" not in st.session_state:
     st.session_state.embeddings = None
-if "faiss_index" not in st.session_state:
-    st.session_state.faiss_index = None
+if "vector_index" not in st.session_state:
+    st.session_state.vector_index = None
 if "model_id" not in st.session_state:
     st.session_state.model_id = None
 
@@ -93,11 +93,11 @@ if uploaded_files:
                 if st.session_state.embeddings is None:
                     st.session_state.embeddings = chunk_embs
                     st.session_state.chunks = all_chunks
-                    st.session_state.faiss_index = create_index(chunk_embs)
+                    st.session_state.vector_index = create_index(chunk_embs)
                 else:
                     st.session_state.embeddings = np.vstack([st.session_state.embeddings, chunk_embs])
                     st.session_state.chunks.extend(all_chunks)
-                    add_embeddings(st.session_state.faiss_index, chunk_embs)
+                    st.session_state.vector_index = add_embeddings(st.session_state.vector_index, chunk_embs)
             st.success(f"Processed {len(all_chunks)} new chunks.")
 else:
     st.info("No files uploaded yet. Upload research papers above to enable Q&A.")
@@ -108,14 +108,14 @@ import numpy as np
 st.markdown("### 💬 Ask a question about your uploaded documents")
 user_question = st.text_input("Ask a question and press Enter", key="question")
 
-if user_question and st.session_state.faiss_index is not None:
+if user_question and st.session_state.vector_index is not None:
     # Ensure model is loaded (loads only once per session)
     with st.spinner("Loading language model..."):
         model_id = ensure_model_loaded()
         st.session_state.model_id = model_id
     # Embed question, retrieve top-k
     q_emb = embed_texts([user_question])[0]
-    idxs = search(st.session_state.faiss_index, q_emb, top_k=5)
+    idxs = search(st.session_state.vector_index, q_emb, top_k=5)
     retrieved = [st.session_state.chunks[i] for i in idxs]
     # Answer using LLM
     with st.spinner("Generating answer..."):

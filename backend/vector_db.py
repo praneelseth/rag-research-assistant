@@ -1,30 +1,40 @@
 # backend/vector_db.py
 
-import faiss
 import numpy as np
 
 def create_index(embeddings: np.ndarray):
     """
-    Create a FAISS IndexFlatIP (for cosine similarity).
+    Store L2-normalized embeddings as the index matrix.
     """
-    # Ensure embeddings are L2 normalized
-    faiss.normalize_L2(embeddings)
-    index = faiss.IndexFlatIP(embeddings.shape[1])
-    index.add(embeddings)
-    return index
+    emb = np.array(embeddings, dtype=np.float32)
+    norms = np.linalg.norm(emb, axis=1, keepdims=True)
+    emb = emb / np.clip(norms, 1e-8, np.inf)
+    return emb
 
-def search(index, query_emb: np.ndarray, top_k: int = 5):
+def search(index: np.ndarray, query_emb: np.ndarray, top_k: int = 5):
     """
-    Search index with 1D query_emb, returns indices of top_k results.
+    Compute cosine similarity: index @ query_emb, return indices of top_k.
     """
-    q = query_emb.astype(np.float32).reshape(1, -1)
-    faiss.normalize_L2(q)
-    D, I = index.search(q, top_k)
-    return I[0].tolist()
+    q = query_emb.astype(np.float32).reshape(-1)
+    q = q / (np.linalg.norm(q) + 1e-8)
+    scores = index @ q
+    if len(scores) == 0:
+        return []
+    # Get indices of top_k highest scores
+    top_k = min(top_k, len(scores))
+    idxs = np.argpartition(-scores, range(top_k))[:top_k]
+    # Sort by descending score
+    idxs = idxs[np.argsort(-scores[idxs])]
+    return idxs.tolist()
 
-def add_embeddings(index, new_embs):
+def add_embeddings(index: np.ndarray, new_embs: np.ndarray):
     """
-    Add new L2-normalized embeddings to an existing index.
+    Add new L2-normalized embeddings (row-wise) to the index matrix.
+    Returns updated matrix.
     """
-    faiss.normalize_L2(new_embs)
-    index.add(new_embs)
+    new_embs = np.array(new_embs, dtype=np.float32)
+    norms = np.linalg.norm(new_embs, axis=1, keepdims=True)
+    new_embs = new_embs / np.clip(norms, 1e-8, np.inf)
+    if index is None or len(index) == 0:
+        return new_embs
+    return np.vstack([index, new_embs])
