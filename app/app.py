@@ -1,7 +1,13 @@
-import os
+import pathlib, sys, os
+# Ensure project root is on Python path so `backend` can be imported when app/ is executed.
+PROJECT_ROOT = pathlib.Path(__file__).resolve().parent.parent
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.append(str(PROJECT_ROOT))
+
 import streamlit as st
 from typing import List
 import tempfile
+import numpy as np
 
 from backend.arxiv_search import search_arxiv
 from backend.pdf_extract import extract_text
