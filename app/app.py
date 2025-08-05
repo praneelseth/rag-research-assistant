@@ -19,6 +19,9 @@ from backend.rag_engine import answer_question, get_model_id, ensure_model_loade
 st.set_page_config(page_title="Research Assistant", layout="wide")
 st.title("📚 Research Assistant: arXiv + Document Q&A (RAG)")
 
+# Status placeholder for visual feedback
+status_placeholder = st.empty()
+
 # Session state
 if "docs_uploaded" not in st.session_state:
     st.session_state.docs_uploaded = []
